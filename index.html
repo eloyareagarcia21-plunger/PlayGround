@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#05080b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>BLACKSITE // ZERO HOUR</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2305080b'/%3E%3Cpath d='M32 8 56 32 32 56 8 32Z' fill='none' stroke='%23ffb02e' stroke-width='4'/%3E%3Cpath d='M32 22 42 32 32 42 22 32Z' fill='%23ffb02e'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="grain"></div>
+    <div id="vignette"></div>
+
+    <!-- ============================= MENU ============================= -->
+    <section id="menu" class="screen">
+      <div class="menu-bg"></div>
+      <div class="menu-top">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-name">BLACKSITE</span>
+          <span class="brand-sub">TACTICAL DIVISION</span>
+        </div>
+        <div class="menu-status">
+          <span class="dot"></span> SECURE UPLINK
+          <span class="sep">/</span> SECTOR 07
+        </div>
+      </div>
+
+      <div class="menu-main">
+        <div class="menu-kicker"><span></span> DIRECT ACTION // OPERATION NIGHTFALL</div>
+        <h1 class="title">
+          <span class="title-line">BLACKSITE</span>
+          <span class="title-line accent">ZERO HOUR</span>
+        </h1>
+        <p class="menu-copy">
+          The compound has gone dark. Hostile autonomous units are converging on your position.
+          Hold the courtyard. Survive ten waves. Leave nothing standing.
+        </p>
+
+        <div class="menu-actions">
+          <button id="deploy-btn" class="btn btn-primary">
+            <span class="btn-glint"></span>
+            <span class="btn-label">DEPLOY</span>
+            <span class="btn-key">ENTER</span>
+          </button>
+          <button id="briefing-btn" class="btn btn-ghost">BRIEFING</button>
+          <button id="settings-btn" class="btn btn-ghost">SETTINGS</button>
+        </div>
+
+        <div class="menu-specs">
+          <div><b>10</b><span>WAVES</span></div>
+          <div><b>04</b><span>HOSTILE TYPES</span></div>
+          <div><b>01</b><span>OPERATOR</span></div>
+        </div>
+      </div>
+
+      <div class="menu-footer">
+        <div class="footer-hint" id="desktop-hint">
+          <span><kbd>WASD</kbd> MOVE</span>
+          <span><kbd>MOUSE</kbd> AIM</span>
+          <span><kbd>LMB</kbd> FIRE</span>
+          <span><kbd>RMB</kbd> ADS</span>
+          <span><kbd>R</kbd> RELOAD</span>
+          <span><kbd>SHIFT</kbd> SPRINT</span>
+        </div>
+        <div class="footer-hint" id="mobile-hint">
+          <span>LEFT STICK MOVE</span>
+          <span>DRAG TO AIM</span>
+          <span>TAP FIRE</span>
+          <span>OPTIONAL TILT AIM</span>
+        </div>
+        <div class="footer-build">BUILD 0.9.4 &nbsp;·&nbsp; THREE.JS RENDERER &nbsp;·&nbsp; <span id="gpu-label">WEBGL</span></div>
+      </div>
+    </section>
+
+    <!-- ============================= BRIEFING ============================= -->
+    <section id="briefing" class="screen panel-screen hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-kicker">MISSION BRIEFING</span>
+          <button class="panel-close" data-close="briefing">✕</button>
+        </div>
+        <h2>OPERATION <span>NIGHTFALL</span></h2>
+        <div class="brief-grid">
+          <div>
+            <h3>PRIMARY</h3>
+            <p>Hold the Blacksite courtyard against ten escalating waves of autonomous hostiles. Protect the uplink. Do not fall.</p>
+            <h3>THREATS</h3>
+            <ul>
+              <li><b>GRUNT</b> — Rifle infantry. Suppressive bursts.</li>
+              <li><b>RUSHER</b> — Fast shock unit. Melee charge.</li>
+              <li><b>HEAVY</b> — Armored breacher. Shotgun spread.</li>
+              <li><b>DRONE</b> — Airborne skirmisher. Laser fire.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>CONTROLS</h3>
+            <table class="keys">
+              <tr><td>WASD</td><td>MOVE</td></tr>
+              <tr><td>MOUSE</td><td>LOOK / AIM</td></tr>
+              <tr><td>LEFT MOUSE</td><td>FIRE</td></tr>
+              <tr><td>RIGHT MOUSE</td><td>AIM DOWN SIGHT</td></tr>
+              <tr><td>R</td><td>RELOAD</td></tr>
+              <tr><td>SHIFT</td><td>SPRINT</td></tr>
+              <tr><td>SPACE</td><td>JUMP</td></tr>
+              <tr><td>ESC</td><td>PAUSE</td></tr>
+            </table>
+            <h3>MOBILE</h3>
+            <p>Left stick to move, drag the right side of the screen to aim. Use the fire, reload, jump and ADS buttons. Enable <b>tilt aiming</b> in settings — iOS will ask for motion permission.</p>
+          </div>
+        </div>
+        <button class="btn btn-primary panel-cta" data-close="briefing"><span class="btn-label">UNDERSTOOD</span></button>
+      </div>
+    </section>
+
+    <!-- ============================= SETTINGS ============================= -->
+    <section id="settings" class="screen panel-screen hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-kicker">SYSTEM CONFIG</span>
+          <button class="panel-close" data-close="settings">✕</button>
+        </div>
+        <h2>SETTINGS</h2>
+        <div class="settings-grid">
+          <label class="setting">
+            <span>LOOK SENSITIVITY <b id="sens-val">1.00</b></span>
+            <input id="sens" type="range" min="0.25" max="2.5" step="0.05" value="1" />
+          </label>
+          <label class="setting">
+            <span>FIELD OF VIEW <b id="fov-val">78</b></span>
+            <input id="fov" type="range" min="65" max="100" step="1" value="78" />
+          </label>
+          <label class="setting">
+            <span>VOLUME <b id="vol-val">70</b></span>
+            <input id="vol" type="range" min="0" max="100" step="1" value="70" />
+          </label>
+          <label class="setting toggle">
+            <span>BLOOM &amp; COLOR GRADE</span>
+            <input id="postfx" type="checkbox" checked />
+            <i></i>
+          </label>
+          <label class="setting toggle">
+            <span>DYNAMIC SHADOWS</span>
+            <input id="shadows" type="checkbox" checked />
+            <i></i>
+          </label>
+          <label class="setting toggle">
+            <span>MOTION BLUR</span>
+            <input id="motionblur" type="checkbox" checked />
+            <i></i>
+          </label>
+          <label class="setting toggle">
+            <span>ACCELEROMETER TILT AIM</span>
+            <input id="tilt" type="checkbox" />
+            <i></i>
+          </label>
+          <label class="setting">
+            <span>TILT SENSITIVITY <b id="tilt-val">1.00</b></span>
+            <input id="tiltsens" type="range" min="0.3" max="2.5" step="0.05" value="1" />
+          </label>
+        </div>
+        <div id="tilt-note" class="tilt-note hidden">Motion access is required for tilt aiming. On iOS this must be granted from a tap.</div>
+        <button id="tilt-permission" class="btn btn-ghost hidden">ENABLE MOTION ACCESS</button>
+        <button class="btn btn-primary panel-cta" data-close="settings"><span class="btn-label">APPLY</span></button>
+      </div>
+    </section>
+
+    <!-- ============================= HUD ============================= -->
+    <section id="hud" class="hidden">
+      <div id="damage-flash"></div>
+      <div id="low-health"></div>
+      <div id="hit-direction"></div>
+
+      <div class="hud-top">
+        <div class="objective">
+          <span class="obj-label">CURRENT OBJECTIVE</span>
+          <span class="obj-text" id="objective-text">SURVIVE THE ASSAULT</span>
+          <span class="obj-sub" id="objective-sub">WAVE 1 / 10</span>
+        </div>
+        <div class="wave-banner" id="wave-banner">
+          <span class="wave-small">INCOMING</span>
+          <span class="wave-big" id="wave-banner-text">WAVE 1</span>
+          <span class="wave-line"></span>
+        </div>
+        <div class="score-block">
+          <span class="score-label">SCORE</span>
+          <span class="score-value" id="score">000000</span>
+          <span class="combo" id="combo"></span>
+        </div>
+      </div>
+
+      <div class="radar-wrap">
+        <canvas id="radar" width="220" height="220"></canvas>
+        <div class="radar-ring"></div>
+        <span class="radar-label">PROXIMITY</span>
+      </div>
+
+      <div class="killfeed" id="killfeed"></div>
+
+      <div class="crosshair" id="crosshair">
+        <i class="ch ch-t"></i><i class="ch ch-b"></i><i class="ch ch-l"></i><i class="ch ch-r"></i>
+        <span class="ch-dot"></span>
+        <div class="hitmarker" id="hitmarker"><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="reload-ring hidden" id="reload-ring">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" class="rr-bg"/><circle cx="50" cy="50" r="42" class="rr-fg" id="rr-fg"/></svg>
+        <span>RELOADING</span>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="vitals">
+          <div class="vital-row">
+            <span class="vital-icon">✚</span>
+            <div class="bar-wrap"><div class="bar health" id="health-bar"></div></div>
+            <span class="vital-num" id="health-num">100</span>
+          </div>
+          <div class="vital-row armor-row">
+            <span class="vital-icon">◈</span>
+            <div class="bar-wrap"><div class="bar armor" id="armor-bar"></div></div>
+            <span class="vital-num" id="armor-num">50</span>
+          </div>
+          <div class="stamina-row"><div id="stamina-bar"></div></div>
+        </div>
+
+        <div class="ammo-block">
+          <div class="weapon-name" id="weapon-name">VK-7 CARBINE</div>
+          <div class="ammo-line">
+            <span class="ammo-mag" id="ammo-mag">30</span>
+            <span class="ammo-sep">/</span>
+            <span class="ammo-reserve" id="ammo-reserve">180</span>
+          </div>
+          <div class="ammo-type" id="fire-mode">AUTO · 5.56</div>
+        </div>
+      </div>
+
+      <div class="hud-hint" id="hud-hint">CLICK TO CAPTURE MOUSE</div>
+      <div class="hud-perf" id="perf"></div>
+    </section>
+
+    <!-- ============================= MOBILE CONTROLS ============================= -->
+    <section id="mobile" class="hidden">
+      <div id="stick-zone">
+        <div id="stick-base"><div id="stick-knob"></div></div>
+      </div>
+      <div id="look-zone"></div>
+      <div class="mobile-buttons">
+        <button class="mbtn mbtn-fire" id="m-fire"><span>FIRE</span></button>
+        <button class="mbtn mbtn-ads" id="m-ads"><span>ADS</span></button>
+        <button class="mbtn mbtn-reload" id="m-reload"><span>⟳</span></button>
+        <button class="mbtn mbtn-jump" id="m-jump"><span>JUMP</span></button>
+        <button class="mbtn mbtn-sprint" id="m-sprint"><span>SPRINT</span></button>
+        <button class="mbtn mbtn-tilt" id="m-tilt"><span>TILT</span></button>
+      </div>
+    </section>
+
+    <!-- ============================= PAUSE ============================= -->
+    <section id="pause" class="screen panel-screen hidden">
+      <div class="panel panel-small">
+        <div class="panel-head">
+          <span class="panel-kicker">OPERATION SUSPENDED</span>
+          <button class="panel-close" id="resume-x">✕</button>
+        </div>
+        <h2>PAUSED</h2>
+        <p class="panel-copy">The compound waits. Regroup and redeploy.</p>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="resume-btn"><span class="btn-label">RESUME</span></button>
+          <button class="btn btn-ghost" id="pause-settings">SETTINGS</button>
+          <button class="btn btn-ghost" id="abort-btn">ABORT MISSION</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= GAME OVER ============================= -->
+    <section id="gameover" class="screen hidden">
+      <div class="go-bg"></div>
+      <div class="go-content">
+        <span class="go-kicker" id="go-kicker">OPERATOR STATUS</span>
+        <h2 id="go-title">K.I.A.</h2>
+        <p id="go-sub">The Blacksite has fallen. Regroup and try again.</p>
+        <div class="go-stats">
+          <div><b id="go-wave">1</b><span>WAVE</span></div>
+          <div><b id="go-kills">0</b><span>ELIMINATIONS</span></div>
+          <div><b id="go-score">0</b><span>SCORE</span></div>
+          <div><b id="go-acc">0%</b><span>ACCURACY</span></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="retry-btn"><span class="btn-label">REDEPLOY</span></button>
+          <button class="btn btn-ghost" id="menu-btn">MAIN MENU</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="rotate-hint" class="hidden">
+      <div class="rotate-icon">▭</div>
+      <p>ROTATE YOUR DEVICE</p>
+      <span>Landscape is recommended for full tactical control.</span>
+    </div>
+
+    <div id="loading">
+      <div class="load-logo">BLACKSITE</div>
+      <div class="load-bar"><i></i></div>
+      <div class="load-text">INITIALIZING RENDER PIPELINE</div>
+    </div>
+
+    <!-- ============================= STARTUP ERROR ============================= -->
+    <div id="fatal" class="hidden">
+      <h2>RENDERER OFFLINE</h2>
+      <p id="fatal-msg"></p>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
