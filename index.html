@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#05070c" />
+  <meta name="description" content="NIGHTSHADE - a cinematic tactical FPS built with Three.js." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>NIGHTSHADE // Tactical FPS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" aria-label="NIGHTSHADE game canvas"></canvas>
+
+    <div class="fx-vignette" aria-hidden="true"></div>
+    <div class="fx-grain" aria-hidden="true"></div>
+    <div class="fx-scanline" aria-hidden="true"></div>
+
+    <!-- ============================== HUD ============================== -->
+    <div id="hud" class="layer hidden" aria-hidden="false">
+      <div class="hud-top">
+        <div class="mission-block">
+          <div class="mission-kicker"><span class="dot"></span> OPERATION NIGHTSHADE</div>
+          <div class="mission-line">
+            <span id="waveLabel">WAVE 01</span>
+            <span class="slash">/</span>
+            <span class="mission-sub">SECTOR 07</span>
+          </div>
+        </div>
+
+        <div class="compass-wrap" aria-hidden="true">
+          <div class="compass-notch"></div>
+          <div class="compass-mask"><div id="compassStrip" class="compass-strip"></div></div>
+          <div class="compass-heading" id="compassHeading">N</div>
+        </div>
+
+        <div class="score-block">
+          <div class="score-value" id="scoreValue">0</div>
+          <div class="score-label">COMBAT SCORE</div>
+          <div class="hostiles"><span id="hostileValue">0</span> HOSTILES</div>
+        </div>
+      </div>
+
+      <div id="banner" class="banner">
+        <div class="banner-main" id="bannerMain">WAVE 01</div>
+        <div class="banner-sub" id="bannerSub">HOSTILES INBOUND</div>
+      </div>
+
+      <div id="crosshair" class="crosshair" aria-hidden="true">
+        <i class="ch ch-t"></i><i class="ch ch-r"></i><i class="ch ch-b"></i><i class="ch ch-l"></i>
+        <i class="ch-dot"></i>
+        <div id="hitmarker" class="hitmarker">
+          <i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+
+      <div class="status-rail" id="statusRail">
+        <span class="status-chip" id="statusReload">RELOADING</span>
+      </div>
+
+      <div id="killfeed" class="killfeed"></div>
+
+      <div class="hud-bottom">
+        <div class="vitals">
+          <div class="vitals-head">
+            <span class="vitals-label">OPERATOR VITALS</span>
+            <span class="vitals-state" id="healthState">STABLE</span>
+          </div>
+          <div class="health-bar">
+            <div class="health-fill" id="healthFill"></div>
+            <div class="health-ticks"></div>
+          </div>
+          <div class="vitals-foot">
+            <span class="health-num" id="healthNum">100</span>
+            <span class="vitals-detail">BIO-MONITOR // LIVE</span>
+          </div>
+        </div>
+
+        <div class="weapon-block">
+          <div class="weapon-name">M4A1 <span>// CARBINE</span></div>
+          <div class="ammo-row">
+            <span class="ammo-mag" id="ammoMag">30</span>
+            <span class="ammo-divider">/</span>
+            <span class="ammo-reserve" id="ammoReserve">120</span>
+          </div>
+          <div class="reload-track"><div class="reload-fill" id="reloadFill"></div></div>
+          <div class="fire-mode"><span class="fire-dot"></span> AUTO <span class="sep">|</span> 5.56×45</div>
+        </div>
+      </div>
+
+      <div id="damageFlash" class="damage-flash"></div>
+      <div id="damageDirs" class="damage-dirs"></div>
+      <div id="hitFlash" class="hit-flash"></div>
+      <div id="scopeOverlay" class="scope-overlay" aria-hidden="true"></div>
+    </div>
+
+    <!-- ========================= TOUCH CONTROLS ========================= -->
+    <div id="touchUI" class="layer hidden" aria-hidden="true">
+      <div id="stick" class="stick">
+        <div class="stick-ring"></div>
+        <div class="stick-knob" id="stickKnob"></div>
+        <div class="stick-hint">MOVE</div>
+      </div>
+      <button id="btnFire" class="touch-btn fire" aria-label="Fire"><span class="fire-core"></span><span class="fire-label">FIRE</span></button>
+      <button id="btnAim" class="touch-btn small aim" aria-label="Aim">AIM</button>
+      <button id="btnReload" class="touch-btn small reload" aria-label="Reload">R</button>
+      <button id="btnJump" class="touch-btn small jump" aria-label="Jump">↑</button>
+      <div class="look-zone" id="lookZone" aria-hidden="true"></div>
+    </div>
+
+    <!-- ============================ START ============================== -->
+    <div id="startScreen" class="layer overlay start">
+      <div class="start-scan" aria-hidden="true"></div>
+      <div class="start-frame">
+        <div class="start-eyebrow"><span class="dot"></span> CLASSIFIED // NIGHT OPS <span class="eyebrow-right">TRU-07</span></div>
+
+        <h1 class="title">NIGHT<span class="title-accent">SHADE</span></h1>
+        <div class="title-rule"><i></i><span>TACTICAL RESPONSE DIVISION</span><i></i></div>
+        <p class="tagline">SECTOR 07 // CONTAINMENT BREACH</p>
+        <p class="brief">
+          Hostile units have overrun the compound. Hold the courtyard, clear every wave,
+          and keep the site dark. You are the last operator on station.
+        </p>
+
+        <div class="start-actions">
+          <button id="playBtn" class="btn-primary" aria-label="Play">
+            <span class="btn-glitch" data-text="PLAY">PLAY</span>
+          </button>
+          <div class="start-side">
+            <button id="tiltBtn" class="btn-ghost" aria-pressed="false">TILT AIM: OFF</button>
+            <button id="audioBtn" class="btn-ghost" aria-pressed="true">AUDIO: ON</button>
+          </div>
+        </div>
+
+        <div class="controls-grid">
+          <div class="ctl-col desktop-only">
+            <h3>DESKTOP</h3>
+            <div class="ctl"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>MOVE</span></div>
+            <div class="ctl"><kbd>MOUSE</kbd><span>AIM</span></div>
+            <div class="ctl"><kbd>LMB</kbd><span>FIRE</span></div>
+            <div class="ctl"><kbd>RMB</kbd><span>AIM DOWN SIGHT</span></div>
+            <div class="ctl"><kbd>SHIFT</kbd><span>SPRINT</span></div>
+            <div class="ctl"><kbd>R</kbd><span>RELOAD</span></div>
+          </div>
+          <div class="ctl-col touch-only">
+            <h3>TOUCH</h3>
+            <div class="ctl"><kbd>L-STICK</kbd><span>MOVE</span></div>
+            <div class="ctl"><kbd>DRAG</kbd><span>LOOK</span></div>
+            <div class="ctl"><kbd>FIRE</kbd><span>HOLD TO SHOOT</span></div>
+            <div class="ctl"><kbd>R</kbd><span>RELOAD</span></div>
+            <div class="ctl"><kbd>TILT</kbd><span>OPTIONAL TILT AIM</span></div>
+          </div>
+          <div class="intel-col">
+            <h3>SITUATION</h3>
+            <div class="intel"><span>AO</span><b>BLACKSITE COURTYARD</b></div>
+            <div class="intel"><span>THREAT</span><b class="danger">HOSTILE INFANTRY</b></div>
+            <div class="intel"><span>EXFIL</span><b>UNAVAILABLE</b></div>
+            <div class="intel"><span>UPLINK</span><b class="ok">STABLE</b></div>
+          </div>
+        </div>
+
+        <div class="start-foot">
+          <span>THREE.JS · WEBGL2 · PROCEDURAL ASSET PIPELINE</span>
+          <span id="perfReadout" class="perf-readout">INITIALIZING RENDERER…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ PAUSE ============================== -->
+    <div id="pauseScreen" class="layer overlay pause hidden">
+      <div class="panel">
+        <div class="panel-kicker">TACTICAL PAUSE</div>
+        <h2>HOLD POSITION</h2>
+        <div class="panel-stats">
+          <div><span>WAVE</span><b id="pauseWave">01</b></div>
+          <div><span>SCORE</span><b id="pauseScore">0</b></div>
+          <div><span>KILLS</span><b id="pauseKills">0</b></div>
+        </div>
+        <button id="resumeBtn" class="btn-primary small-btn" aria-label="Resume">RESUME</button>
+        <button id="pauseTiltBtn" class="btn-ghost wide">TILT AIM: OFF</button>
+        <button id="restartBtn" class="btn-ghost wide">RESTART OPERATION</button>
+        <div class="panel-hint">ESC / TAP RESUME TO CONTINUE</div>
+      </div>
+    </div>
+
+    <!-- ============================ DEATH ============================== -->
+    <div id="deathScreen" class="layer overlay death hidden">
+      <div class="panel death-panel">
+        <div class="panel-kicker danger">SIGNAL LOST</div>
+        <h2 class="death-title">OPERATOR DOWN</h2>
+        <p class="death-sub">The compound has fallen. Regroup and redeploy.</p>
+        <div class="panel-stats">
+          <div><span>WAVE</span><b id="deathWave">01</b></div>
+          <div><span>SCORE</span><b id="deathScore">0</b></div>
+          <div><span>KILLS</span><b id="deathKills">0</b></div>
+          <div><span>ACCURACY</span><b id="deathAcc">0%</b></div>
+        </div>
+        <button id="redeployBtn" class="btn-primary"><span class="btn-glitch" data-text="REDEPLOY">REDEPLOY</span></button>
+        <div class="panel-hint">TIP: SHORT CONTROLLED BURSTS LAND MORE HEADSHOTS</div>
+      </div>
+    </div>
+
+    <div id="rotateHint" class="rotate-hint hidden">ROTATE DEVICE FOR FULL FIELD OF VIEW</div>
+    <div id="bootError" class="boot-error hidden"></div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
