@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#06090c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="BLACKSITE // ZERO HOUR — a cinematic first-person survival shooter built with Three.js." />
+    <title>BLACKSITE // ZERO HOUR</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2306090c'/%3E%3Cpath d='M14 44 L32 14 L50 44 Z' fill='none' stroke='%23ffb066' stroke-width='4'/%3E%3Ccircle cx='32' cy='38' r='4' fill='%23ffb066'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene" aria-hidden="true"></canvas>
+      <div class="screen-fx" aria-hidden="true">
+        <div class="fx-vignette"></div>
+        <div class="fx-grain"></div>
+        <div class="fx-scan"></div>
+        <div id="damage-vignette"></div>
+      </div>
+
+      <div id="loading">
+        <div class="load-mark">B//07</div>
+        <div class="load-bar"><span></span></div>
+        <p>ESTABLISHING UPLINK</p>
+      </div>
+
+      <!-- ============================== HUD ============================== -->
+      <div id="hud" class="hidden" aria-hidden="true">
+        <div class="hud-top">
+          <div class="mission-card">
+            <div class="brandline"><span class="brand-mark">B//07</span><span class="brand-rule"></span><span class="brand-org">BLACKSITE</span></div>
+            <div class="mission-title">OPERATION <b>NIGHTFALL</b></div>
+            <div class="mission-sub">SECTOR 07 · COMPOUND PERIMETER</div>
+            <div class="mission-status"><span class="dot"></span><span id="status-text">LINK ACTIVE</span></div>
+          </div>
+
+          <div class="compass">
+            <div class="compass-notch"></div>
+            <div class="compass-window"><div id="compass-strip"></div></div>
+            <div class="compass-readout"><span id="compass-deg">000</span><span class="compass-deg-mark">°</span></div>
+          </div>
+
+          <div class="wave-card">
+            <div class="wave-row"><span class="label">WAVE</span><span id="wave-num" class="wave-number">01</span></div>
+            <div class="wave-row"><span class="label">HOSTILES</span><span id="hostile-num" class="hostile-number">00</span></div>
+            <div class="wave-row score-row"><span class="label">SCORE</span><span id="score-num">000000</span></div>
+            <div id="wave-progress"><span></span></div>
+          </div>
+        </div>
+
+        <div id="killfeed" aria-live="polite"></div>
+        <div id="banner"><div class="banner-kicker" id="banner-kicker">INCOMING</div><h2 id="banner-title">WAVE 01</h2><p id="banner-sub">HOSTILES INBOUND</p><div class="banner-line"></div></div>
+
+        <div id="crosshair">
+          <span class="ch ch-t"></span><span class="ch ch-b"></span><span class="ch ch-l"></span><span class="ch ch-r"></span><span class="ch-dot"></span>
+        </div>
+        <div id="hitmarker"><span></span><span></span><span></span><span></span></div>
+        <div id="damage-indicators"></div>
+
+        <div class="hud-bottom">
+          <div class="vitals">
+            <div class="operator">
+              <div class="op-sigil">V</div>
+              <div class="op-text"><span class="op-name">SGT. VANCE</span><span class="op-role">ALPHA · POINT</span></div>
+              <div class="op-heart"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-5 3 10 2.5-7 2 4H22" /></svg></div>
+            </div>
+            <div class="bar-row"><span class="bar-label">HEALTH</span><div class="bar health"><span id="health-fill"></span><i class="bar-ticks"></i></div><span id="health-num">100</span></div>
+            <div class="bar-row"><span class="bar-label">ARMOR</span><div class="bar armor"><span id="armor-fill"></span><i class="bar-ticks"></i></div><span id="armor-num">60</span></div>
+          </div>
+
+          <div class="center-hint" id="center-hint">WASD MOVE · MOUSE AIM · LMB FIRE · R RELOAD · SPACE JUMP · ESC PAUSE</div>
+
+          <div class="ammo">
+            <div class="weapon-line"><span class="weapon-name">MK-17</span><span class="weapon-cal">5.56 × 45</span></div>
+            <div class="ammo-line"><span id="ammo-mag">30</span><span class="ammo-slash">/</span><span id="ammo-reserve">180</span></div>
+            <div class="ammo-meta"><span id="fire-mode">AUTO</span><span class="meta-dot"></span><span id="reload-label">READY</span></div>
+            <div class="reload-bar" id="reload-bar"><span></span></div>
+          </div>
+        </div>
+
+        <div class="hud-actions">
+          <button id="btn-mute" class="icon-btn" aria-label="Toggle sound" title="Sound">SOUND</button>
+          <button id="btn-full" class="icon-btn" aria-label="Toggle fullscreen" title="Fullscreen">FULL</button>
+        </div>
+
+        <div id="low-health"></div>
+        <div id="fps" aria-hidden="true"></div>
+      </div>
+
+      <!-- ============================ TOUCH UI ============================ -->
+      <div id="touch-ui" class="hidden" aria-hidden="true">
+        <div id="stick-zone">
+          <div id="stick-base"><div id="stick-knob"></div><span class="stick-ring"></span></div>
+        </div>
+        <div id="look-zone"></div>
+        <div class="touch-buttons">
+          <button id="btn-tilt-quick" class="touch-btn small wide" aria-label="Toggle tilt aiming"><span>TILT</span></button>
+          <button id="btn-reload-touch" class="touch-btn small" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></button>
+          <button id="btn-jump-touch" class="touch-btn small" aria-label="Jump"><svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/><path d="M6 19h12"/></svg></button>
+          <button id="btn-ads-touch" class="touch-btn medium" aria-label="Aim down sights"><svg viewBox="0 0 24 24"><path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
+          <button id="btn-fire-touch" class="touch-btn fire" aria-label="Fire"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></button>
+        </div>
+        <div id="tilt-hint">TILT AIM OFF</div>
+      </div>
+
+      <!-- ============================ START ============================== -->
+      <div id="start-screen" class="overlay start">
+        <div class="start-bg"></div>
+        <header class="start-head">
+          <div class="brandline big"><span class="brand-mark">B//07</span><span class="brand-rule"></span><span class="brand-org">BLACKSITE LOGISTICS</span></div>
+          <div class="start-meta">NIGHTFALL PROTOCOL <span></span> SECTOR 07</div>
+        </header>
+
+        <main class="start-main">
+          <p class="eyebrow">A FIRST-PERSON SURVIVAL SHOOTER</p>
+          <h1 class="title"><span>BLACKSITE</span><span class="title-sub">ZERO HOUR</span></h1>
+          <p class="tagline">The compound is dark. The rain is heavy. <b>Hold the line.</b></p>
+
+          <div class="start-actions">
+            <button id="btn-start" class="primary-btn" aria-label="Start Game">
+              <span class="btn-edge"></span>
+              <span class="btn-label">START GAME</span>
+              <span class="btn-arrow">›</span>
+            </button>
+            <div class="best-line">PERSONAL BEST <b id="best-score">000000</b></div>
+          </div>
+
+          <div class="start-options">
+            <label class="opt">
+              <span class="opt-label">LOOK SENSITIVITY</span>
+              <input id="sens" type="range" min="0.4" max="2.6" step="0.05" value="1" aria-label="Look sensitivity" />
+              <span id="sens-val" class="opt-val">1.00</span>
+            </label>
+            <button id="btn-tilt" class="opt-btn" aria-pressed="false">
+              <span class="opt-btn-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M9 18h6"/></svg></span>
+              <span><b>TILT AIM</b><small id="tilt-state">OPTIONAL · GYROSCOPE</small></span>
+            </button>
+            <button id="btn-sound" class="opt-btn" aria-pressed="true">
+              <span class="opt-btn-icon"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8a6 6 0 0 1 0 8"/></svg></span>
+              <span><b>AUDIO</b><small id="sound-state">ENABLED</small></span>
+            </button>
+          </div>
+
+          <p class="start-foot">
+            <span class="platform-desktop">WASD · MOUSE · SPACE · R</span>
+            <span class="platform-mobile">DUAL-STICK TOUCH · OPTIONAL TILT</span>
+            <span class="start-credit">THREE.JS · PROCEDURAL ASSETS · HEADPHONES RECOMMENDED</span>
+          </p>
+        </main>
+
+        <div class="start-corner tl"></div><div class="start-corner tr"></div><div class="start-corner bl"></div><div class="start-corner br"></div>
+      </div>
+
+      <!-- ============================ PAUSE ============================== -->
+      <div id="pause-screen" class="overlay pause hidden">
+        <div class="panel">
+          <p class="eyebrow">TACTICAL HOLD</p>
+          <h2>PAUSED</h2>
+          <div class="pause-stats">
+            <div><span>WAVE</span><b id="pause-wave">01</b></div>
+            <div><span>SCORE</span><b id="pause-score">000000</b></div>
+            <div><span>HOSTILES</span><b id="pause-hostiles">00</b></div>
+          </div>
+          <div class="pause-actions">
+            <button id="btn-resume" class="primary-btn"><span class="btn-label">RESUME</span><span class="btn-arrow">›</span></button>
+            <button id="btn-restart" class="ghost-btn">RESTART OPERATION</button>
+          </div>
+          <div class="pause-options">
+            <label class="opt">
+              <span class="opt-label">SENSITIVITY</span>
+              <input id="sens-pause" type="range" min="0.4" max="2.6" step="0.05" value="1" aria-label="Look sensitivity" />
+            </label>
+            <button id="btn-tilt-pause" class="opt-btn" aria-pressed="false"><span><b>TILT AIM</b><small id="tilt-state-pause">OFF</small></span></button>
+            <button id="btn-sound-pause" class="opt-btn" aria-pressed="true"><span><b>AUDIO</b><small id="sound-state-pause">ON</small></span></button>
+          </div>
+          <p class="pause-hint">ESC / P TO RESUME</p>
+        </div>
+      </div>
+
+      <!-- ============================ DEATH ============================== -->
+      <div id="death-screen" class="overlay death hidden">
+        <div class="death-scan"></div>
+        <div class="death-panel">
+          <p class="eyebrow danger">SIGNAL LOST</p>
+          <h2>OPERATOR <span>KIA</span></h2>
+          <p class="death-sub">THE COMPOUND HAS FALLEN. REGROUP AND TRY AGAIN.</p>
+          <div class="pause-stats">
+            <div><span>WAVE</span><b id="death-wave">01</b></div>
+            <div><span>SCORE</span><b id="death-score">000000</b></div>
+            <div><span>ELIMINATIONS</span><b id="death-kills">00</b></div>
+          </div>
+          <button id="btn-again" class="primary-btn danger-btn"><span class="btn-label">REDEPLOY</span><span class="btn-arrow">›</span></button>
+          <button id="btn-menu" class="ghost-btn">RETURN TO BRIEFING</button>
+        </div>
+      </div>
+
+      <div id="toast" role="status"></div>
+
+      <div id="rotate-hint">
+        <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M2 12a10 10 0 0 1 4-8"/><path d="M2 4v4h4"/></svg>
+        <span>ROTATE FOR A WIDER FIELD OF VIEW</span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
