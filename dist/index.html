@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070909" />
+  <meta name="description" content="KIMETSU: NIGHTMARE SHIFT — a first-person survival horror night shift." />
+  <title>KIMETSU: NIGHTMARE SHIFT</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23070909'/%3E%3Ccircle cx='50' cy='50' r='31' fill='%23b81722'/%3E%3Cpath d='M18 63 Q49 19 82 37 L73 46 Q48 31 27 70Z' fill='%23e9e1cf'/%3E%3C/svg%3E" />
+  <script type="module" crossorigin src="/assets/index-1mbn6-ER.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-YOcBkOft.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="webgl" aria-label="3D game view"></canvas>
+
+    <div id="atmosphere" aria-hidden="true">
+      <div class="vignette"></div>
+      <div class="grain"></div>
+      <div class="letterbox top"></div>
+      <div class="letterbox bottom"></div>
+    </div>
+
+    <div id="loading-screen" class="screen is-active">
+      <div class="loader-mark">
+        <span class="jp">鬼</span>
+        <div class="loader-ring"></div>
+      </div>
+      <p class="eyebrow">WISTERIA SECURITY SYSTEMS</p>
+      <p class="loading-copy">INITIALIZING NIGHT WATCH<span class="ellipsis">...</span></p>
+      <div class="loading-line"><i></i></div>
+    </div>
+
+    <!-- TITLE -->
+    <section id="screen-title" class="screen title-screen" aria-label="Main menu">
+      <header class="title-header">
+        <div class="brand-small">
+          <span class="brand-slash"></span>
+          <span>WISTERIA<br>ENTERTAINMENT</span>
+        </div>
+        <div class="header-right">
+          <span class="live-dot"></span>
+          <span>SECURITY TERMINAL 06</span>
+          <span class="header-divider"></span>
+          <span id="title-clock">00:00</span>
+        </div>
+      </header>
+
+      <div class="title-layout">
+        <div class="title-main">
+          <div class="kanji-vertical" aria-hidden="true">夜勤<br>鬼滅</div>
+          <p class="eyebrow title-eyebrow">A DEMON SLAYER NIGHT SHIFT</p>
+          <h1 class="game-title">
+            <span class="title-k">KIMETSU</span>
+            <span class="title-nightmare">NIGHTMARE <em>SHIFT</em></span>
+          </h1>
+          <div class="title-rule"><span></span><b>壱</b></div>
+          <p class="title-tagline">The show is over. The doors are locked.<br>Something is still awake.</p>
+
+          <nav class="main-nav" aria-label="Game modes">
+            <button id="btn-continue" class="menu-button menu-button-primary" data-action="continue">
+              <span class="menu-index">01</span>
+              <span class="menu-label"><strong>CONTINUE SHIFT</strong><small id="continue-copy">NIGHT 1 · 12:00 AM</small></span>
+              <span class="menu-arrow">↗</span>
+            </button>
+            <button class="menu-button" data-action="new">
+              <span class="menu-index">02</span>
+              <span class="menu-label"><strong>NEW SHIFT</strong><small>BEGIN AT NIGHT ONE</small></span>
+              <span class="menu-arrow">↗</span>
+            </button>
+            <button class="menu-button" data-action="nights">
+              <span class="menu-index">03</span>
+              <span class="menu-label"><strong>NIGHT SELECT</strong><small>FIVE NIGHTS · FIVE WAYS TO DIE</small></span>
+              <span class="menu-arrow">↗</span>
+            </button>
+            <button class="menu-button" data-action="custom">
+              <span class="menu-index">04</span>
+              <span class="menu-label"><strong>CUSTOM NIGHT</strong><small>TUNE YOUR OWN NIGHTMARE</small></span>
+              <span class="menu-arrow">↗</span>
+            </button>
+            <div class="menu-row">
+              <button class="menu-button menu-button-small" data-action="options"><span class="menu-label"><strong>OPTIONS</strong></span></button>
+              <button class="menu-button menu-button-small" data-action="howto"><span class="menu-label"><strong>FIELD MANUAL</strong></span></button>
+            </div>
+          </nav>
+        </div>
+
+        <aside class="title-aside">
+          <div class="wisteria-stamp" aria-hidden="true">
+            <svg viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="1"/>
+              <circle cx="80" cy="80" r="58" fill="none" stroke="currentColor" stroke-width=".5" stroke-dasharray="2 5"/>
+              <path d="M33 94 Q67 42 129 56 Q110 96 60 111 Q79 86 113 70 Q83 74 56 103" fill="none" stroke="currentColor" stroke-width="3"/>
+              <path d="M49 118 Q80 108 101 118" fill="none" stroke="currentColor" stroke-width="1"/>
+            </svg>
+            <span>鬼殺<br>隊</span>
+          </div>
+          <div class="aside-meta">
+            <span class="eyebrow">SHIFT DIRECTIVE</span>
+            <p>Monitor the cameras.<br>Seal the doors.<br>Survive until <b>6:00 AM</b>.</p>
+          </div>
+          <div class="aside-stats">
+            <div><span id="stat-unlocked">01</span><small>NIGHTS OPEN</small></div>
+            <div><span id="stat-clears">00</span><small>CLEARED</small></div>
+            <div><span id="stat-deaths">00</span><small>INCIDENTS</small></div>
+          </div>
+          <p class="content-note">Contains flashing lights, sudden scares and<br>procedural horror audio.</p>
+        </aside>
+      </div>
+
+      <footer class="title-footer">
+        <span>© 1986 WISTERIA ENTERTAINMENT — NIGHT DIVISION</span>
+        <span class="footer-tip">DON'T LET THEM IN <i></i></span>
+        <span>BUILD 6.0.1</span>
+      </footer>
+    </section>
+
+    <!-- NIGHT SELECT -->
+    <section id="screen-nights" class="screen panel-screen" aria-label="Night select">
+      <div class="panel-shell">
+        <header class="panel-header">
+          <button class="back-button" data-action="back" aria-label="Back to main menu">← <span>MAIN MENU</span></button>
+          <div class="panel-heading">
+            <span class="eyebrow">WISTERIA NIGHT ARCHIVE</span>
+            <h2>SELECT YOUR NIGHT</h2>
+          </div>
+          <span class="panel-number">02</span>
+        </header>
+        <div class="night-difficulty">
+          <span class="label">DIFFICULTY</span>
+          <div class="segmented" id="night-difficulty" role="group" aria-label="Difficulty">
+            <button data-difficulty="relaxed">RELAXED <small>75%</small></button>
+            <button data-difficulty="standard" class="is-active">STANDARD <small>100%</small></button>
+            <button data-difficulty="nightmare">NIGHTMARE <small>135%</small></button>
+          </div>
+        </div>
+        <div class="night-cards" id="night-cards"></div>
+        <div class="panel-footer">
+          <p id="night-summary">Each night runs from 12:00 AM to 6:00 AM. Power is finite. So is your luck.</p>
+          <button id="btn-start-night" class="action-button" data-action="start-night">CLOCK IN <span>→</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOM NIGHT -->
+    <section id="screen-custom" class="screen panel-screen" aria-label="Custom night">
+      <div class="panel-shell">
+        <header class="panel-header">
+          <button class="back-button" data-action="back" aria-label="Back to main menu">← <span>MAIN MENU</span></button>
+          <div class="panel-heading">
+            <span class="eyebrow">DIRECTOR'S CUT</span>
+            <h2>CUSTOM NIGHT</h2>
+          </div>
+          <span class="panel-number">04</span>
+        </header>
+        <div class="custom-layout">
+          <div class="custom-sliders" id="custom-sliders"></div>
+          <aside class="custom-side">
+            <span class="eyebrow">PRESSURE PROFILE</span>
+            <div class="aggression-readout"><span id="custom-total">00</span><small>TOTAL AGGRESSION</small></div>
+            <div class="preset-buttons">
+              <button data-preset="quiet">Quiet Shift</button>
+              <button data-preset="haunted">Haunted House</button>
+              <button data-preset="hell">Nightmare</button>
+            </div>
+            <div class="custom-tip">
+              <b>Tip</b>
+              <p>At 4/20, a character moves slowly. At 20/20, expect them at your door before the hour changes.</p>
+            </div>
+            <label class="custom-difficulty">DIFFICULTY
+              <select id="custom-difficulty">
+                <option value="relaxed">Relaxed</option>
+                <option value="standard" selected>Standard</option>
+                <option value="nightmare">Nightmare</option>
+              </select>
+            </label>
+            <button id="btn-start-custom" class="action-button" data-action="start-custom">BEGIN CUSTOM NIGHT <span>→</span></button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPTIONS -->
+    <section id="screen-options" class="screen panel-screen" aria-label="Options">
+      <div class="panel-shell narrow">
+        <header class="panel-header">
+          <button class="back-button" data-action="back" aria-label="Back to main menu">← <span>MAIN MENU</span></button>
+          <div class="panel-heading">
+            <span class="eyebrow">SECURITY TERMINAL</span>
+            <h2>OPTIONS</h2>
+          </div>
+          <span class="panel-number">05</span>
+        </header>
+        <div class="options-list">
+          <label class="range-row">
+            <span><b>MASTER VOLUME</b><small>All game audio</small></span>
+            <input id="opt-master" type="range" min="0" max="100" value="80">
+            <output>80</output>
+          </label>
+          <label class="range-row">
+            <span><b>MUSIC</b><small>Original ambient score</small></span>
+            <input id="opt-music" type="range" min="0" max="100" value="55">
+            <output>55</output>
+          </label>
+          <label class="range-row">
+            <span><b>SOUND EFFECTS</b><small>Doors, cameras, footsteps</small></span>
+            <input id="opt-sfx" type="range" min="0" max="100" value="85">
+            <output>85</output>
+          </label>
+          <div class="toggle-row">
+            <span><b>TOUCH TILT LOOK</b><small>Use device accelerometer on touch screens</small></span>
+            <button id="opt-tilt" class="switch" role="switch" aria-checked="false"><i></i><span>OFF</span></button>
+          </div>
+          <div class="toggle-row">
+            <span><b>REDUCED MOTION</b><small>Calm the camera shake and screen flicker</small></span>
+            <button id="opt-motion" class="switch" role="switch" aria-checked="false"><i></i><span>OFF</span></button>
+          </div>
+          <div class="toggle-row">
+            <span><b>RENDER QUALITY</b><small>Reduce for older mobile devices</small></span>
+            <div class="segmented small" id="opt-quality">
+              <button data-quality="high" class="is-active">HIGH</button>
+              <button data-quality="low">LOW</button>
+            </div>
+          </div>
+          <div class="options-actions">
+            <button id="btn-reset-save" class="text-button danger">RESET SHIFT DATA</button>
+            <span id="save-status">Progress saved locally</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIELD MANUAL -->
+    <section id="screen-howto" class="screen panel-screen" aria-label="Field manual">
+      <div class="panel-shell wide">
+        <header class="panel-header">
+          <button class="back-button" data-action="back" aria-label="Back to main menu">← <span>MAIN MENU</span></button>
+          <div class="panel-heading">
+            <span class="eyebrow">NIGHT GUARD FIELD MANUAL</span>
+            <h2>SURVIVAL PROTOCOL</h2>
+          </div>
+          <span class="panel-number">06</span>
+        </header>
+        <div class="manual-layout">
+          <div class="manual-controls">
+            <span class="eyebrow">CONTROLS</span>
+            <div class="control-grid">
+              <div><kbd>DRAG</kbd><span>Look around the office</span></div>
+              <div><kbd>TAB</kbd><span>Raise / lower camera monitor</span></div>
+              <div><kbd>A</kbd><kbd>D</kbd><span>Seal left / right door</span></div>
+              <div><kbd>F</kbd><span>Hold flashlight</span></div>
+              <div><kbd>1–7</kbd><span>Switch security camera</span></div>
+              <div><kbd>ESC</kbd><span>Pause shift</span></div>
+            </div>
+            <div class="touch-note"><span>TOUCH</span> Drag to look. Use the door, torch and camera buttons on screen. Tilt look can be enabled in Options.</div>
+            <div class="manual-objective">
+              <span class="eyebrow">YOUR SHIFT</span>
+              <p>Survive five hours. Watch the cameras. Close a door only while something is at it. Every system consumes power.</p>
+              <div class="meter-legend">
+                <span><i class="power-dot"></i>POWER</span>
+                <span><i class="battery-dot"></i>TORCH BATTERY</span>
+                <span><i class="danger-dot"></i>DOOR ALERT</span>
+              </div>
+            </div>
+          </div>
+          <div class="intel">
+            <span class="eyebrow">SUBJECT INTELLIGENCE</span>
+            <div id="intel-list" class="intel-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HUD -->
+    <div id="game-hud" class="game-hud is-hidden" aria-hidden="true">
+      <div class="hud-top-left">
+        <div class="night-label"><span>NIGHT</span><b id="hud-night">01</b><i></i><em id="hud-difficulty">STANDARD</em></div>
+        <div class="shift-clock"><b id="hud-time">12:00</b><span id="hud-ampm">AM</span></div>
+        <div class="hour-dots" id="hour-dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="hud-top-right">
+        <div class="meter-block power-block">
+          <div class="meter-head"><span>POWER</span><b id="hud-power">100%</b></div>
+          <div class="meter"><i id="power-fill"></i></div>
+          <div class="usage-bars" id="usage-bars" aria-label="Power usage">
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <span class="meter-sub" id="power-sub">USAGE 01</span>
+        </div>
+        <div class="meter-block battery-block">
+          <div class="meter-head"><span>TORCH CELL</span><b id="hud-battery">100%</b></div>
+          <div class="meter small"><i id="battery-fill"></i></div>
+          <span class="meter-sub" id="battery-sub">READY</span>
+        </div>
+      </div>
+
+      <button id="btn-pause" class="pause-button" aria-label="Pause shift">Ⅱ</button>
+      <div id="event-log" class="event-log" aria-live="polite"></div>
+      <div id="danger-vignette" class="danger-vignette"></div>
+      <div id="red-alert" class="red-alert"></div>
+
+      <div class="hud-bottom">
+        <button id="btn-door-left" class="door-control left" aria-label="Toggle left door">
+          <span class="door-kicker">WEST DOOR</span>
+          <span class="door-state"><i></i><b>OPEN</b></span>
+          <span class="door-key">A</span>
+        </button>
+
+        <div class="center-controls">
+          <button id="btn-flashlight" class="round-control flashlight" aria-label="Hold flashlight">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 4h10l-1.5 9H13zM14 13h2v15h-2zM11 6h3M17 6h3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span>TORCH</span>
+            <i class="control-ring"></i>
+          </button>
+          <button id="btn-camera" class="camera-control" aria-label="Open security cameras">
+            <span class="cam-glyph"><i></i><i></i><i></i><i></i></span>
+            <span class="cam-copy"><b>CAMERAS</b><small>TAB / SPACE</small></span>
+          </button>
+        </div>
+
+        <button id="btn-door-right" class="door-control right" aria-label="Toggle right door">
+          <span class="door-kicker">EAST DOOR</span>
+          <span class="door-state"><i></i><b>OPEN</b></span>
+          <span class="door-key">D</span>
+        </button>
+      </div>
+
+      <div id="hud-hint" class="hud-hint">
+        <span class="hint-mark">!</span>
+        <span id="hud-hint-copy">Drag to look around.</span>
+      </div>
+      <div class="hud-corner tl"></div><div class="hud-corner tr"></div><div class="hud-corner bl"></div><div class="hud-corner br"></div>
+    </div>
+
+    <!-- CAMERA OVERLAY -->
+    <section id="camera-ui" class="camera-ui is-hidden" aria-label="Security cameras">
+      <div class="cam-static" id="cam-static"></div>
+      <div class="cam-scanlines"></div>
+      <div class="cam-roll"></div>
+      <div class="cam-frame">
+        <header class="cam-header">
+          <div class="cam-brand"><span class="rec-dot"></span> WISTERIA CCTV <small>SECURE FEED</small></div>
+          <div class="cam-feed-id"><span id="cam-label">CAM 01</span><b id="cam-room">SHOW STAGE</b></div>
+          <div class="cam-clock"><span id="cam-clock">12:00:00</span><small id="cam-ampm">AM</small></div>
+        </header>
+        <div class="cam-corner c1"></div><div class="cam-corner c2"></div><div class="cam-corner c3"></div><div class="cam-corner c4"></div>
+        <div class="cam-side-left">
+          <span class="cam-coord">35.6762° N<br>139.6503° E</span>
+          <span class="cam-signal">SIGNAL <b id="cam-signal">98%</b></span>
+        </div>
+        <div class="cam-side-right">
+          <span>REC</span><span class="cam-timecode" id="cam-timecode">00:00:00:00</span>
+        </div>
+        <div class="cam-reticle"><i></i><i></i><i></i><i></i></div>
+        <div id="cam-warning" class="cam-warning">MOTION DETECTED</div>
+        <div class="cam-map-wrap">
+          <div class="cam-map-title"><span>FACILITY MAP</span><small>SELECT FEED</small></div>
+          <div class="cam-map" id="cam-map">
+            <button data-cam="stage" class="cam-map-btn map-stage"><span>01</span><b>STAGE</b></button>
+            <button data-cam="dining" class="cam-map-btn map-dining"><span>02</span><b>DINING</b></button>
+            <button data-cam="west" class="cam-map-btn map-west"><span>03</span><b>W. HALL</b></button>
+            <button data-cam="east" class="cam-map-btn map-east"><span>04</span><b>E. HALL</b></button>
+            <button data-cam="kitchen" class="cam-map-btn map-kitchen"><span>05</span><b>KITCHEN</b></button>
+            <button data-cam="storage" class="cam-map-btn map-storage"><span>06</span><b>STORAGE</b></button>
+            <button data-cam="vent" class="cam-map-btn map-vent"><span>07</span><b>VENT</b></button>
+            <div class="map-office">OFFICE</div>
+            <svg class="map-lines" viewBox="0 0 300 270" aria-hidden="true">
+              <path d="M150 220 L150 178 M150 178 L73 148 M150 178 L227 148 M73 148 L42 100 M227 148 L258 100 M73 148 L73 76 M227 148 L227 76 M150 178 L150 76" />
+            </svg>
+          </div>
+        </div>
+        <button id="btn-close-camera" class="close-camera" aria-label="Close camera monitor">LOWER MONITOR <span>SPACE</span></button>
+        <footer class="cam-footer">
+          <span>WISTERIA ENTERTAINMENT CO. // NIGHT DIVISION</span>
+          <span id="cam-msg">ALL SYSTEMS NOMINAL</span>
+          <span>PWR DRAW <b id="cam-power">0.0</b></span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- PAUSE -->
+    <section id="screen-pause" class="screen modal-screen" aria-label="Pause menu">
+      <div class="modal-card pause-card">
+        <span class="eyebrow">SHIFT SUSPENDED</span>
+        <h2>PAUSED</h2>
+        <p id="pause-copy">The cameras are still rolling.</p>
+        <button class="action-button" data-action="resume">RESUME SHIFT <span>→</span></button>
+        <button class="text-button" data-action="restart">RESTART NIGHT</button>
+        <button class="text-button" data-action="quit">ABANDON SHIFT</button>
+        <p class="pause-hint">ESC TO RESUME</p>
+      </div>
+    </section>
+
+    <!-- GAME OVER -->
+    <section id="screen-gameover" class="screen ending-screen gameover-screen" aria-label="Game over">
+      <div class="ending-frame">
+        <header class="ending-header">
+          <span>WISTERIA ENTERTAINMENT // INCIDENT REPORT</span>
+          <span id="go-case">CASE #0601</span>
+        </header>
+        <div class="ending-body">
+          <div class="ending-title-block">
+            <span class="eyebrow error">SHIFT TERMINATED</span>
+            <h2>THEY FOUND<br>THE OFFICE.</h2>
+            <p id="go-cause">Subject: TANJIRO KAMADO</p>
+          </div>
+          <div class="ending-report">
+            <div class="report-line"><span>NIGHT</span><b id="go-night">01</b></div>
+            <div class="report-line"><span>TIME OF INCIDENT</span><b id="go-time">2:34 AM</b></div>
+            <div class="report-line"><span>POWER REMAINING</span><b id="go-power">34%</b></div>
+            <div class="report-line"><span>CAMERAS CHECKED</span><b id="go-cams">07</b></div>
+            <div class="report-line"><span>STATUS</span><b class="red">UNRESOLVED</b></div>
+            <p class="report-note">Guard did not complete the shift. Security footage has been quarantined by Wisteria Entertainment.</p>
+          </div>
+        </div>
+        <div class="ending-actions">
+          <button class="action-button" data-action="retry">TRY AGAIN <span>↻</span></button>
+          <button class="text-button" data-action="quit">RETURN TO MAIN MENU</button>
+        </div>
+        <footer class="ending-footer"><span>THE NIGHT REMEMBERS.</span><span id="go-deaths">INCIDENT 01</span></footer>
+      </div>
+    </section>
+
+    <!-- VICTORY -->
+    <section id="screen-victory" class="screen ending-screen victory-screen" aria-label="Victory">
+      <div class="ending-frame victory-frame">
+        <header class="ending-header">
+          <span>WISTERIA ENTERTAINMENT // SHIFT LOG</span>
+          <span>06:00 AM</span>
+        </header>
+        <div class="ending-body">
+          <div class="ending-title-block">
+            <span class="eyebrow dawn">SHIFT COMPLETE</span>
+            <h2>DAWN<br>BREAKS.</h2>
+            <p id="vic-subtitle">You survived Night 1.</p>
+            <div class="stars" id="vic-stars"><i>★</i><i>★</i><i>★</i></div>
+          </div>
+          <div class="ending-report">
+            <div class="report-line"><span>NIGHT</span><b id="vic-night">01</b></div>
+            <div class="report-line"><span>POWER REMAINING</span><b id="vic-power">42%</b></div>
+            <div class="report-line"><span>TORCH CELL</span><b id="vic-battery">61%</b></div>
+            <div class="report-line"><span>CAMERAS CHECKED</span><b id="vic-cams">12</b></div>
+            <div class="report-line"><span>NEXT NIGHT</span><b id="vic-unlock" class="dawn">UNLOCKED</b></div>
+            <p class="report-note" id="vic-note">The animatronics have returned to the stage. For now.</p>
+          </div>
+        </div>
+        <div class="ending-actions">
+          <button id="btn-next-night" class="action-button" data-action="next-night">NEXT NIGHT <span>→</span></button>
+          <button class="text-button" data-action="quit">RETURN TO MAIN MENU</button>
+        </div>
+        <footer class="ending-footer"><span>THE SUN RISES. YOU ARE STILL HERE.</span><span id="vic-date">NIGHT 01 CLEARED</span></footer>
+      </div>
+    </section>
+
+    <div id="intro-card" class="intro-card is-hidden" aria-hidden="true">
+      <span class="intro-night" id="intro-night">NIGHT 01</span>
+      <h3 id="intro-title">SHIFT START</h3>
+      <p id="intro-sub">12:00 AM — Wisteria Entertainment</p>
+    </div>
+
+    <div id="flash" class="flash" aria-hidden="true"></div>
+    <div id="screen-fade" class="screen-fade" aria-hidden="true"></div>
+    <div id="rotate-device" class="rotate-device">
+      <span>↻</span>
+      <b>ROTATE YOUR DEVICE</b>
+      <small>For the full security office experience</small>
+    </div>
+  </div>
+
+</body>
+</html>
