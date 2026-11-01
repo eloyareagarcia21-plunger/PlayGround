@@ -89,12 +89,39 @@ try {
   $('#loading-screen').innerHTML = '<div style="text-align:center;padding:30px"><h2 style="font-family:serif">WEBGL UNAVAILABLE</h2><p style="font-family:monospace;font-size:12px;color:#aaa">This security terminal requires hardware-accelerated WebGL.</p></div>';
   throw err;
 }
-renderer.setPixelRatio(save.settings.quality === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.65));
+renderer.setPixelRatio(1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
-renderer.shadowMap.enabled = save.settings.quality !== 'low';
+
+// Software WebGL (SwiftShader / llvmpipe) cannot afford the full presentation
+// settings. Detect it once and keep the terminal responsive.
+function detectSoftwareRenderer(r) {
+  try {
+    const gl = r.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : '';
+    return /swiftshader|llvmpipe|software|basic render/i.test(name);
+  } catch (err) {
+    return false;
+  }
+}
+const SOFTWARE_RENDERER = detectSoftwareRenderer(renderer);
+
+function targetPixelRatio(quality) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, window.innerWidth);
+  const h = Math.max(1, window.innerHeight);
+  const maxPixels = SOFTWARE_RENDERER ? 520000 : (quality === 'low' ? 900000 : 1700000);
+  const cap = quality === 'low' ? 1 : 1.65;
+  const ratio = Math.min(dpr, cap, Math.sqrt(maxPixels / (w * h)));
+  return Math.max(0.55, ratio);
+}
+
+renderer.setPixelRatio(targetPixelRatio(save.settings.quality));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = save.settings.quality !== 'low' && !SOFTWARE_RENDERER;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const world = new World(renderer);
@@ -254,7 +281,7 @@ const callbacks = {
     $('#camera-ui').classList.add('is-hidden');
     save.deaths += 1;
     save.started = true;
-    save.lastNight = d.night;
+    save.lastNight = clamp(d.night, 1, 5);
     persist();
     $('#go-night').textContent = d.custom ? 'CUSTOM' : pad(d.night);
     $('#go-time').textContent = d.time;
@@ -371,11 +398,30 @@ function updateHUD(s) {
   right.classList.toggle('closed', s.doors.right);
   left.classList.toggle('alert', !!s.danger.left);
   right.classList.toggle('alert', !!s.danger.right);
-  left.querySelector('.door-state b').textContent = s.doors.left ? 'SEALED' : 'OPEN';
-  right.querySelector('.door-state b').textContent = s.doors.right ? 'SEALED' : 'OPEN';
+  left.querySelector('.door-state b').textContent = s.doors.left ? 'SEALED' : (s.danger.left ? 'ALERT' : 'OPEN');
+  right.querySelector('.door-state b').textContent = s.doors.right ? 'SEALED' : (s.danger.right ? 'ALERT' : 'OPEN');
   $('#btn-flashlight').classList.toggle('on', s.flashlight);
   $('#danger-vignette').classList.toggle('on', !!(s.danger.left || s.danger.right || s.danger.vent || s.redAlert));
   $('#red-alert').classList.toggle('on', !!s.redAlert);
+
+  const banner = $('#danger-banner');
+  let bannerTitle = '';
+  let bannerCopy = '';
+  if (s.redAlert) {
+    bannerTitle = 'MANUAL OVERRIDE';
+    bannerCopy = 'Aim at him and HOLD the torch';
+  } else if (s.danger.vent) {
+    bannerTitle = 'VENT BREACH';
+    bannerCopy = 'Aim up-left · hold the torch (F) or check CAM 07';
+  } else if (s.danger.left || s.danger.right) {
+    bannerTitle = s.danger.left && s.danger.right ? 'BOTH DOORS' : (s.danger.left ? 'WEST DOOR' : 'EAST DOOR');
+    bannerCopy = s.danger.left ? 'Close the west door (A)' : 'Close the east door (D)';
+  }
+  banner.classList.toggle('on', !!bannerTitle);
+  if (bannerTitle) {
+    $('#danger-banner-title').textContent = bannerTitle;
+    $('#danger-banner-copy').textContent = bannerCopy;
+  }
 
   if (s.monitor && game.phase === 'playing') {
     hudEl.classList.add('camera-open');
@@ -410,12 +456,16 @@ function updateCameraHud(s) {
   );
   const warning = $('#cam-warning');
   const isGlitch = intruders.some(a => a.id === 'muzan');
-  warning.classList.toggle('on', intruders.length > 0 || isGlitch);
-  warning.textContent = isGlitch ? 'SIGNAL INTERFERENCE' : 'MOTION DETECTED';
+  const doorAlert = !!(s.danger?.left || s.danger?.right || s.danger?.vent);
+  warning.classList.toggle('on', intruders.length > 0 || isGlitch || doorAlert);
+  warning.textContent = isGlitch ? 'SIGNAL INTERFERENCE' : s.danger?.vent ? 'VENT BREACH' : doorAlert ? 'DOOR ALERT' : 'MOTION DETECTED';
 
   let msg = 'ALL SYSTEMS NOMINAL';
   if (s.camSignal < 70) msg = 'SIGNAL DEGRADED';
   if (intruders.length) msg = `${intruders[0].id.toUpperCase()} VISIBLE`;
+  if (s.danger?.left) msg = 'WEST DOOR ALERT';
+  if (s.danger?.right) msg = 'EAST DOOR ALERT';
+  if (s.danger?.vent) msg = 'VENT BREACH';
   if (s.redAlert) msg = 'MANUAL OVERRIDE';
   $('#cam-msg').textContent = msg;
   $$('.cam-map-btn').forEach(b => b.classList.toggle('is-active', b.dataset.cam === s.activeCam));
@@ -805,10 +855,10 @@ $$('#opt-quality button').forEach(btn => {
   });
 });
 function applyQuality(q) {
-  renderer.setPixelRatio(q === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.65));
+  renderer.setPixelRatio(targetPixelRatio(q));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = q !== 'low';
-  if (world.officeSpot) world.officeSpot.castShadow = q !== 'low';
+  renderer.shadowMap.enabled = q !== 'low' && !SOFTWARE_RENDERER;
+  if (world.officeSpot) world.officeSpot.castShadow = q !== 'low' && !SOFTWARE_RENDERER;
   if (q === 'low') {
     renderer.shadowMap.needsUpdate = true;
   }
@@ -914,6 +964,7 @@ window.addEventListener('keyup', e => {
 });
 
 window.addEventListener('resize', () => {
+  renderer.setPixelRatio(targetPixelRatio(save.settings.quality));
   renderer.setSize(window.innerWidth, window.innerHeight);
   world.resize(window.innerWidth, window.innerHeight);
 });

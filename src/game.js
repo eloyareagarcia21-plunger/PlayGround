@@ -50,6 +50,17 @@ export const NIGHT_DEFS = [
 const BASE_MOVE = { tanjiro: 6.1, nezuko: 5.5, zenitsu: 4.1, inosuke: 5.6, giyu: 6.4, muzan: 8 };
 const DOOR_GRACE = { tanjiro: 3.5, nezuko: 4.2, zenitsu: 2.4, inosuke: 3.7, giyu: 3.9, muzan: 4 };
 
+// Night pacing. `first` is the opening delay before anyone starts moving;
+// `grace` scales the reaction window once a character reaches a door/vent;
+// `move` scales the time between room transitions (higher = slower).
+const NIGHT_PACE = {
+  1: { first: [17, 25], grace: 2.20, move: 1.18 },
+  2: { first: [15, 22], grace: 1.80, move: 1.06 },
+  3: { first: [13, 19], grace: 1.55, move: 0.96 },
+  4: { first: [11, 16], grace: 1.32, move: 0.88 },
+  5: { first: [9, 14], grace: 1.12, move: 0.80 }
+};
+
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -150,6 +161,7 @@ export class Game {
     if (this.jumpscareLight) { this.jumpscareLight.intensity = 0; }
 
     const cfg = customAI || (NIGHT_DEFS.find(n => n.n === night)?.ai) || NIGHT_DEFS[0].ai;
+    this.pace = custom ? this._customPace(cfg) : (NIGHT_PACE[night] || NIGHT_PACE[1]);
     this.ai = {};
     for (const id of Object.keys(CHARACTERS)) {
       const level = clamp(Math.round((cfg[id] || 0) * this.diff.ai), 0, 20);
@@ -162,7 +174,7 @@ export class Game {
         level,
         active: level > 0,
         room: startRooms[id],
-        state: 'roam',
+        state: id === 'muzan' ? 'dormant' : 'roam',
         moveTimer: rand(3.5, 6.8),
         walkTimer: 0,
         doorTimer: 0,
@@ -177,13 +189,14 @@ export class Game {
         announced: false
       };
     }
-    // Stagger the first approach.
-    this.ai.tanjiro.moveTimer = rand(5, 9);
-    this.ai.nezuko.moveTimer = rand(7, 12);
-    this.ai.zenitsu.moveTimer = rand(8, 13);
-    this.ai.inosuke.moveTimer = rand(8, 14);
-    this.ai.giyu.moveTimer = rand(10, 16);
-    this.ai.muzan.nextManifest = 42;
+    // Stagger the opening approach so early nights leave time to learn the office.
+    const first = () => rand(this.pace.first[0], this.pace.first[1]);
+    this.ai.tanjiro.moveTimer = first() * rand(.9, 1.05);
+    this.ai.nezuko.moveTimer = first() * rand(1.15, 1.35);
+    this.ai.zenitsu.moveTimer = first() * rand(1.2, 1.45);
+    this.ai.inosuke.moveTimer = first() * rand(1.25, 1.5);
+    this.ai.giyu.moveTimer = first() * rand(1.4, 1.7);
+    this.ai.muzan.nextManifest = rand(40, 55) - this.ai.muzan.level * 1.4;
 
     this.world.setMenuMode(false);
     this.world.setDoor('left', false);
@@ -377,7 +390,9 @@ export class Game {
 
     this._updateResources(dt);
     this._updateAI(dt);
+    if (this.phase !== 'playing') return;
     this._updateMuzan(dt);
+    if (this.phase !== 'playing') return;
     this._updateCameraEffects(dt);
 
     if (this.powerOut) this._updatePowerOut(dt);
@@ -410,6 +425,7 @@ export class Game {
       monitorCam: security,
       timeLabel: this.getClockLabel(),
       power: this.power,
+      danger: this.doorAlerts,
       flicker: 1
     });
     this.world.updateCamera(this.world.officeCamera, this.lookYaw, this.lookPitch);
@@ -488,9 +504,20 @@ export class Game {
   }
 
   /* ------------------------- AI ------------------------- */
+  _customPace(cfg) {
+    const levels = Object.values(cfg || {}).filter(v => typeof v === 'number');
+    const max = levels.length ? Math.max(...levels) : 0;
+    const t = clamp(max / 20, 0, 1);
+    return {
+      first: [22 - t * 16, 30 - t * 20],
+      grace: 2.15 - t * 1.05,
+      move: 1.14 - t * 0.32
+    };
+  }
+
   _moveDelay(ai) {
     const base = BASE_MOVE[ai.id] - ai.level * .16;
-    return clamp(base * rand(.74, 1.28), 1.25, 9.5) / this.diff.ai;
+    return clamp(base * rand(.74, 1.28), 1.25, 9.5) * (this.pace?.move ?? 1) / this.diff.ai;
   }
 
   _updateAI(dt) {
@@ -531,7 +558,7 @@ export class Game {
       }
 
       if (ai.state === 'ventDoor') {
-        if (this.flashlight && Math.abs(this.lookYaw) < .7) {
+        if (this.flashlight && this._isAimingAtVent()) {
           ai.lightTimer += dt;
           if (ai.lightTimer > .52) {
             this._retreat(ai, 'vent');
@@ -576,17 +603,26 @@ export class Game {
       if (next === 'westDoor' || next === 'eastDoor') {
         ai.room = next;
         ai.state = 'door';
-        ai.doorTimer = DOOR_GRACE[id] * this.diff.grace;
+        ai.doorTimer = DOOR_GRACE[id] * this.diff.grace * (this.pace?.grace ?? 1);
         ai.closedTime = 0;
         ai.announced = true;
         this._arriveAtDoor(ai, next === 'westDoor' ? 'left' : 'right');
       } else if (next === 'vent') {
-        ai.room = 'vent';
-        ai.state = 'ventDoor';
-        ai.doorTimer = DOOR_GRACE.nezuko * this.diff.grace;
-        ai.lightTimer = 0;
-        ai.ventSeen = 0;
-        this._arriveAtVent(ai);
+        if (ai.room === 'vent') {
+          ai.state = 'ventDoor';
+          ai.doorTimer = DOOR_GRACE.nezuko * this.diff.grace * (this.pace?.grace ?? 1);
+          ai.lightTimer = 0;
+          ai.ventSeen = 0;
+          this._arriveAtVent(ai);
+        } else {
+          // First she has to crawl into the duct; CAM 07 can catch her there.
+          ai.room = 'vent';
+          ai.state = 'roam';
+          ai.walkTimer = 1.6;
+          ai.moveTimer = this._moveDelay(ai);
+          this.audio.hiss();
+          this.event('Something scrapes inside the vent.', true);
+        }
       } else {
         ai.room = next;
         ai.state = 'roam';
@@ -668,7 +704,7 @@ export class Game {
     if (m.state === 'manifest') {
       this.redAlert = true;
       m.manifestTimer -= dt;
-      const aiming = this.flashlight && Math.abs(this.lookYaw) < .5;
+      const aiming = this.flashlight && this._isAimingAtMuzan();
       if (aiming) {
         m.banish += dt;
         this.world.setFlashlight(true, 1.2);
@@ -777,6 +813,24 @@ export class Game {
     this.doorAlerts.left = Object.values(this.ai).some(a => a.active && a.state === 'door' && a.room === 'westDoor');
     this.doorAlerts.right = Object.values(this.ai).some(a => a.active && a.state === 'door' && a.room === 'eastDoor');
     this.doorAlerts.vent = !!(this.ai.nezuko?.active && this.ai.nezuko.state === 'ventDoor');
+  }
+
+  _isAimingAtVent() {
+    // The office vent is on the front wall, up and to the left of the desk.
+    return this._lookDot(-3.9, 2.92 - 1.62, -4.87 - 3.35) > 0.86;
+  }
+
+  _isAimingAtMuzan() {
+    return this._lookDot(0, 1.58 - 1.62, 1.6 - 3.35) > 0.72;
+  }
+
+  _lookDot(dx, dy, dz) {
+    const len = Math.hypot(dx, dy, dz) || 1;
+    const cp = Math.cos(this.lookPitch);
+    const fx = -Math.sin(this.lookYaw) * cp;
+    const fy = Math.sin(this.lookPitch);
+    const fz = -Math.cos(this.lookYaw) * cp;
+    return (dx * fx + dy * fy + dz * fz) / len;
   }
 
   _tensionLevel() {

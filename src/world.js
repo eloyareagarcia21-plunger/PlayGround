@@ -51,7 +51,7 @@ export const ROOM_ANCHORS = {
   vent: [{ p: [0, 1.24, 10.2], r: 0, s: 0.78 }],
   westDoor: [{ p: [-5.75, 0, 0.55], r: Math.PI / 2 }],
   eastDoor: [{ p: [5.75, 0, 0.55], r: -Math.PI / 2 }],
-  office: [{ p: [0, 0, -2.9], r: 0 }]
+  office: [{ p: [0, 0, 1.6], r: 0 }]
 };
 
 const ROOM_SLOTS = {
@@ -625,8 +625,16 @@ export class World {
     clock.position.set(0, 2.82, -4.875); room.add(clock);
     this.addCylinder(.43, .43, .05, this.mDark, 0, 2.82, -4.92, 24, room).rotation.x = Math.PI / 2;
     // vent grille on back wall (Nezuko's entrance)
-    this.addBox(1.05, .68, .06, this.mGrille, -3.9, 2.92, -4.87, null, room, false);
+    const officeVentMat = new THREE.MeshStandardMaterial({
+      map: this.grilleTex, emissiveMap: this.grilleTex, roughness: .7, metalness: .4,
+      emissive: 0x000000, emissiveIntensity: 0
+    });
+    this.officeVentMesh = this.addBox(1.05, .68, .06, officeVentMat, -3.9, 2.92, -4.87, null, room, false);
     this.officeVentPos = new THREE.Vector3(-3.9, 2.9, -4.5);
+    // Pre-created alert light so the shader light count never changes mid-game.
+    this.officeVentLight = new THREE.PointLight(0xff2a33, 0, 5.5, 2);
+    this.officeVentLight.position.set(-3.6, 2.45, -4.15);
+    room.add(this.officeVentLight);
     // exit sign over door
     const exitMat = new THREE.MeshStandardMaterial({ color: 0x193c30, emissive: 0x1e7d50, emissiveIntensity: 1.4, roughness: .5 });
     this.addBox(.9, .22, .05, exitMat, 3.8, 3.09, -4.86, null, room, false);
@@ -1052,7 +1060,7 @@ export class World {
     spot.position.set(0, 3.45, .4);
     spot.target.position.set(0, .7, .4);
     spot.castShadow = true;
-    spot.shadow.mapSize.set(1024, 1024);
+    spot.shadow.mapSize.set(512, 512);
     spot.shadow.bias = -0.0007;
     spot.shadow.camera.near = .3;
     spot.shadow.camera.far = 11;
@@ -1064,8 +1072,20 @@ export class World {
     const lamp = new THREE.PointLight(0xffb45e, 2.2, 4.5, 2);
     lamp.position.copy(this.lampLightPos); this.scene.add(lamp);
     this.lampLight = lamp;
-    const doorGlowL = null, doorGlowR = null;
+    // Doorway wash lights: without these the side doors read as black voids.
+    const doorGlowL = new THREE.PointLight(0xffb37a, 1.4, 6, 1.8);
+    doorGlowL.position.set(-4.55, 2.3, .7); this.scene.add(doorGlowL);
+    const doorGlowR = new THREE.PointLight(0xffb37a, 1.4, 6, 1.8);
+    doorGlowR.position.set(4.55, 2.3, .7); this.scene.add(doorGlowR);
     this.doorLightL = doorGlowL; this.doorLightR = doorGlowR;
+    // Dim back-wall wash so the vent, posters and clock stay readable.
+    const wallWash = new THREE.PointLight(0xffcf9e, 2.2, 7, 1.8);
+    wallWash.position.set(0, 2.75, -4.1); this.scene.add(wallWash);
+    this.officeWallLight = wallWash;
+    // Red key light for Muzan's manifestation, created up-front to keep shader lights stable.
+    const manifest = new THREE.PointLight(0xff2a33, 0, 6, 2);
+    manifest.position.set(0, 2.15, 2.9); this.scene.add(manifest);
+    this.officeManifestLight = manifest;
 
     // low red emergency light
     const emergency = new THREE.PointLight(0x6b0b10, 1.2, 7, 2);
@@ -1122,7 +1142,7 @@ export class World {
   }
 
   setDoor(side, closed) {
-    if (!this._doorTarget[side] === undefined) return;
+    if (this._doorTarget[side] === undefined) return;
     this._doorTarget[side] = closed ? 1 : 0;
   }
 
@@ -1139,6 +1159,7 @@ export class World {
     this.officeSpot.intensity = 42 * p * flicker;
     this.officeFill.intensity = 3.4 * p * flicker;
     this.lampLight.intensity = powerOut ? 0 : 2.2;
+    if (this.officeWallLight) this.officeWallLight.intensity = powerOut ? 0 : 2.2 * flicker;
     if (this.doorLightL) this.doorLightL.intensity = powerOut ? 0 : (1.4 * flicker);
     if (this.doorLightR) this.doorLightR.intensity = powerOut ? 0 : (1.4 * flicker);
     this.emergencyLight.intensity = powerOut ? 2.4 : (redAlert ? 3.2 : 1.2);
@@ -1259,6 +1280,16 @@ export class World {
     }
     if (this.kitchenRed) this.kitchenRed.intensity = 1.2 + Math.sin(t * 2.4) * .3;
     if (this.emergencyLight) this.emergencyLight.intensity = (state.powerOut ? 2.4 : 1.2) + Math.sin(t * 1.1) * .2;
+    if (this.officeVentMesh) {
+      const ventAlert = !!state.danger?.vent;
+      const pulse = ventAlert ? 1.7 + Math.sin(t * 11) * .8 : 0;
+      this.officeVentMesh.material.emissive.setHex(ventAlert ? 0xff1a24 : 0x1a0507);
+      this.officeVentMesh.material.emissiveIntensity = ventAlert ? pulse : .9;
+      if (this.officeVentLight) this.officeVentLight.intensity = ventAlert ? 5 + Math.sin(t * 11) * 2.4 : 0;
+    }
+    if (this.officeManifestLight) {
+      this.officeManifestLight.intensity = state.redAlert ? 5.2 + Math.sin(t * 9) * 1.8 : 0;
+    }
 
     // dust drift
     if (this.dustSystems) {
@@ -1349,18 +1380,23 @@ export class World {
 
   _cullRoomLights(camera) {
     if (!this.lightPool.length) return;
+    const MAX_ACTIVE = 5;
     const pos = camera.getWorldPosition(this._tmpVec2);
-    let nearestA = null, nearestB = null, nearestC = null;
-    let dA = Infinity, dB = Infinity, dC = Infinity;
+    const ranked = [];
     for (const l of this.lightPool) {
       l.getWorldPosition(this._tmpVec);
-      const d = this._tmpVec.distanceToSquared(pos);
-      if (d < dA) { nearestC = nearestB; dC = dB; nearestB = nearestA; dB = dA; nearestA = l; dA = d; }
-      else if (d < dB) { nearestC = nearestB; dC = dB; nearestB = l; dB = d; }
-      else if (d < dC) { nearestC = l; dC = d; }
+      ranked.push({ l, d: this._tmpVec.distanceToSquared(pos), on: l.intensity > 0.02 });
     }
-    // Exactly three point lights stay active, so the shader variant is stable.
-    for (const l of this.lightPool) l.visible = (l === nearestA || l === nearestB || l === nearestC);
+    ranked.sort((a, b) => (b.on - a.on) || (a.d - b.d));
+    const keep = new Set();
+    for (let i = 0; i < ranked.length && keep.size < MAX_ACTIVE; i++) {
+      if (ranked[i].on) keep.add(ranked[i].l);
+    }
+    // Pad with the nearest switched-off lights so the shader light count never changes.
+    for (let i = 0; i < ranked.length && keep.size < MAX_ACTIVE; i++) {
+      keep.add(ranked[i].l);
+    }
+    for (const l of this.lightPool) l.visible = keep.has(l);
   }
 
   getMenuCamera() { return this.menuCamera; }
